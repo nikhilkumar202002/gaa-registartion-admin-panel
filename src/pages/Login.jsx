@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { login } from '../axios/axios';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -11,16 +16,27 @@ const LoginPage = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    setError('');
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login Attempt:', formData);
-    // Add your authentication logic here
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await login({ email: formData.email, password: formData.password });
+      localStorage.setItem('token', data.token);
+      navigate('/');
+    } catch (err) {
+      const message = err.response?.data?.message || 'Invalid credentials. Please try again.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -118,11 +134,19 @@ const LoginPage = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+            disabled={loading}
+            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Sign In
+            {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
+
+        {/* Error Message */}
+        {error && (
+          <p className="text-center text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
+            {error}
+          </p>
+        )}
 
         {/* Footer Link */}
         <p className="text-center text-sm text-gray-500">
