@@ -1,8 +1,11 @@
 import React from 'react'
+import Admin from './pages/Admin.jsx'
 
 const App = () => {
   return (
-    <div>App</div>
+    <>
+      <Admin />
+    </>
   )
 }
 
