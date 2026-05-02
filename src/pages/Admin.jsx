@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Mail, MapPin, GraduationCap, Phone, MoreHorizontal, Download, Filter, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { LogOut, Mail, MapPin, GraduationCap, Phone, Download, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { getRegistrations } from '../axios/axios';
 
 const EnrollmentTable = () => {
@@ -30,8 +30,58 @@ const EnrollmentTable = () => {
     }
   };
 
+  // Keep a ref of the enrollments to allow silent background updates
+  const enrollmentsRef = useRef(enrollments);
+  useEffect(() => { enrollmentsRef.current = enrollments; }, [enrollments]);
+
+  // Enhanced fetch: supports a `silent` option to avoid flashing the loader
+  const fetchDataEnhanced = async (page, { silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setError('');
+    }
+
+    try {
+      const { data: res } = await getRegistrations(page);
+      if (silent) {
+        // Only update state if data actually changed to avoid unnecessary re-renders
+        try {
+          const prev = enrollmentsRef.current || [];
+          const next = res.data || [];
+          if (JSON.stringify(prev) !== JSON.stringify(next)) {
+            setEnrollments(next);
+            setPagination(res.pagination);
+          }
+        } catch (e) {
+          setEnrollments(res.data);
+          setPagination(res.pagination);
+        }
+      } else {
+        setEnrollments(res.data);
+        setPagination(res.pagination);
+      }
+    } catch (err) {
+      if (err.response?.status === 401) {
+        localStorage.removeItem('token');
+        navigate('/login');
+      } else if (!silent) {
+        setError('Failed to load registrations. Please try again.');
+      }
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  // Initial load + background polling every 5 seconds (silent)
   useEffect(() => {
-    fetchData(currentPage);
+    // initial (non-silent) load
+    fetchDataEnhanced(currentPage, { silent: false });
+
+    const interval = setInterval(() => {
+      fetchDataEnhanced(currentPage, { silent: true });
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [currentPage]);
 
   const handleLogout = () => {
@@ -69,9 +119,6 @@ const EnrollmentTable = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-              <Filter size={16} /> Filter
-            </button>
             <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-xl text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-md shadow-blue-100">
               <Download size={16} /> Export CSV
             </button>
@@ -92,22 +139,20 @@ const EnrollmentTable = () => {
                 <tr className="bg-gray-50/50 border-b border-gray-100">
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Student</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Contact Info</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Course</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Qualification</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-16 text-center text-gray-400">
+                    <td colSpan={3} className="px-6 py-16 text-center text-gray-400">
                       <Loader2 size={28} className="animate-spin mx-auto mb-2" />
                       <span className="text-sm">Loading registrations…</span>
                     </td>
                   </tr>
                 ) : enrollments.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-16 text-center text-sm text-gray-400">
+                    <td colSpan={3} className="px-6 py-16 text-center text-sm text-gray-400">
                       No registrations found.
                     </td>
                   </tr>
@@ -146,26 +191,12 @@ const EnrollmentTable = () => {
                         </div>
                       </td>
 
-                      {/* Course Badge */}
-                      <td className="px-6 py-5">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                          {item.course}
-                        </span>
-                      </td>
-
                       {/* Qualification */}
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-2 text-sm text-gray-700 font-medium">
                           <GraduationCap size={16} className="text-gray-400 shrink-0" />
                           {item.qualification}
                         </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-6 py-5 text-right">
-                        <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all">
-                          <MoreHorizontal size={20} />
-                        </button>
                       </td>
                     </tr>
                   ))

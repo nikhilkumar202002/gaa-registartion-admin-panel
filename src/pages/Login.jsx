@@ -29,7 +29,7 @@ const LoginPage = () => {
     setError('');
     try {
       const { data } = await login({ email: formData.email, password: formData.password });
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('token', data.data.token);
       navigate('/');
     } catch (err) {
       const message = err.response?.data?.message || 'Invalid credentials. Please try again.';
