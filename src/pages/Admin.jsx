@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Mail, MapPin, GraduationCap, Phone, Download, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { getRegistrations } from '../axios/axios';
+import api, { getRegistrations } from '../axios/axios';
 
 const EnrollmentTable = () => {
   const navigate = useNavigate();
@@ -140,19 +140,23 @@ const EnrollmentTable = () => {
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Student</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Contact Info</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Qualification</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Course</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Token</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Registered</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Photo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   <tr>
-                    <td colSpan={3} className="px-6 py-16 text-center text-gray-400">
+                    <td colSpan={7} className="px-6 py-16 text-center text-gray-400">
                       <Loader2 size={28} className="animate-spin mx-auto mb-2" />
                       <span className="text-sm">Loading registrations…</span>
                     </td>
                   </tr>
                 ) : enrollments.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-6 py-16 text-center text-sm text-gray-400">
+                    <td colSpan={7} className="px-6 py-16 text-center text-sm text-gray-400">
                       No registrations found.
                     </td>
                   </tr>
@@ -196,6 +200,42 @@ const EnrollmentTable = () => {
                         <div className="flex items-center gap-2 text-sm text-gray-700 font-medium">
                           <GraduationCap size={16} className="text-gray-400 shrink-0" />
                           {item.qualification}
+                        </div>
+                      </td>
+
+                      {/* Course */}
+                      <td className="px-6 py-5">
+                        <div className="text-sm text-gray-700">{item.course || '-'}</div>
+                      </td>
+
+                      {/* Token Number */}
+                      <td className="px-6 py-5">
+                        <div className="text-sm text-gray-700">{item.token_number || '-'}</div>
+                      </td>
+
+                      {/* Created At */}
+                      <td className="px-6 py-5">
+                        <div className="text-sm text-gray-600">{item.created_at ? new Date(item.created_at).toLocaleString() : '-'}</div>
+                      </td>
+
+                      {/* Photo */}
+                      <td className="px-6 py-5">
+                        <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                          {item.img_url ? (
+                            <img
+                              src={
+                                item.img_url
+                                  ? (item.img_url.startsWith('http')
+                                      ? item.img_url
+                                      : `${api.defaults.baseURL.replace(/\/api\/?$/,'')}/${item.img_url.replace(/^\//, '')}`)
+                                  : undefined
+                              }
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-xs text-gray-400">No Image</div>
+                          )}
                         </div>
                       </td>
                     </tr>
